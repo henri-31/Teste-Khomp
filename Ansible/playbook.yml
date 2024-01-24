@@ -1,0 +1,38 @@
+---
+- name: Configuração do servidor
+  hosts: meu_servidor_web
+  become: true
+  tasks:
+    - name: Criaçao de usuario e grupo
+      user:
+        name: khomp
+        group: sudo
+        password: "{{ 'coloque a senha' | password_hash('sha512') }}"
+        update_password: always
+
+    - name: Configuraçao do SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+      with_items:
+        - { regexp: '^PasswordAuthentication', line: 'PasswordAuthentication no' }
+        - { regexp: '^ChallengeResponseAuthentication', line: 'ChallengeResponseAuthentication no' }
+      notify: restart sshd
+
+    - name: instalar o nginx
+      package:
+        name: nginx
+        state: present
+
+    - name: iniciar o serviço
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: criaçao do arquivo html
+      copy:
+        content: "<html><body>Bem-vindo ao meu site</body></html>"
+        dest: /caminho/para/pasta_padrao_do_webserver/index.html
